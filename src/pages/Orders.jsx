@@ -14,15 +14,17 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MdSearch } from "react-icons/md";
 
-
 const Orders = () => {
   const { orders } = useContext(AppContext);
   const [searchTerm, setSearchTerm] = useState("");
   const filteredOrders = useMemo(() => {
     if (!searchTerm) return orders;
-    return orders.filter((order) =>
-      order.user.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.products.some((p) => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    return orders.filter(
+      (order) =>
+        order.user.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.products.some((p) =>
+          p.name.toLowerCase().includes(searchTerm.toLowerCase())
+        )
     );
   }, [orders, searchTerm]);
 
@@ -85,21 +87,55 @@ const Orders = () => {
             ) : (
               filteredOrders.map((order, index) => (
                 <TableRow key={index}>
-                  <TableCell className="text-center font-medium">{index + 1}</TableCell>
-                  <TableCell className="font-medium">{order.user}</TableCell>
+                  <TableCell className="text-center font-medium">
+                    {index + 1}
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    {order.user.fullname}
+                  </TableCell>
                   <TableCell className="font-medium ">
                     {order.products.map((p, idx) => (
                       <div key={idx}>
-                        {p.name} ({p.quantity}){idx !== order.products.length - 1 ? <br /> : null}
+                        {p.name} ({p.quantity})
+                        {idx !== order.products.length - 1 ? <br /> : null}
                       </div>
                     ))}
                   </TableCell>
                   <TableCell className="font-medium">
-                    {order.paid ? (
-                      <Badge variant="success" className="bg-green-100 text-green-700 border-green-200">Paid</Badge>
-                    ) : (
-                      <Badge variant="destructive" className="bg-red-100 text-red-700 border-red-200">Unpaid</Badge>
-                    )}
+                    {(() => {
+                      switch (order.status) {
+                        case "paid":
+                          return (
+                            <Badge className="bg-green-100 text-green-700 border-green-200">
+                              Paid
+                            </Badge>
+                          );
+                        case "pending":
+                          return (
+                            <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200">
+                              Pending
+                            </Badge>
+                          );
+                        case "failed":
+                          return (
+                            <Badge className="bg-red-100 text-red-700 border-red-200">
+                              Failed
+                            </Badge>
+                          );
+                        case "cancelled":
+                          return (
+                            <Badge className="bg-gray-100 text-gray-700 border-gray-200">
+                              Cancelled
+                            </Badge>
+                          );
+                        default:
+                          return (
+                            <Badge className="bg-slate-100 text-slate-700 border-slate-200">
+                              Unknown
+                            </Badge>
+                          );
+                      }
+                    })()}
                   </TableCell>
                   <TableCell className="font-medium">
                     {new Intl.NumberFormat("en-IN", {

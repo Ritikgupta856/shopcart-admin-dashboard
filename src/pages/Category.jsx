@@ -36,7 +36,7 @@ import AddCategory from "../components/AddCategory";
 import toast from "react-hot-toast";
 
 const Category = () => {
-  const { categories } = useContext(AppContext);
+  const { categories ,getCategories } = useContext(AppContext);
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -57,15 +57,18 @@ const Category = () => {
 
   const removeCategory = async () => {
     if (!categoryToDelete) return;
-    
+
     try {
       setIsLoading(true);
       const response = await axios.delete(
-        `${import.meta.env.VITE_SERVER_URL}/api/categories/${categoryToDelete._id}`
+        `${import.meta.env.VITE_SERVER_URL}/api/categories/${
+          categoryToDelete._id
+        }`
       );
       toast.success("Category removed successfully");
       setDeleteDialogOpen(false);
       setCategoryToDelete(null);
+      getCategories(); 
     } catch (error) {
       console.error("Error removing Category:", error);
     } finally {
@@ -87,7 +90,10 @@ const Category = () => {
             <Button className="w-full sm:w-auto">+ Add New Category</Button>
           </SheetTrigger>
           <SheetContent side="right" className="w-full sm:w-96">
-            <AddCategory />
+            <AddCategory
+              onClose={() => setOpen(false)}
+              onCategoryAdded={() => getCategories()}
+            />
           </SheetContent>
         </Sheet>
       </div>
@@ -185,8 +191,11 @@ const Category = () => {
                         </div>
                       </TableCell>
                       <TableCell className="text-center">
-                        <AlertDialog 
-                          open={deleteDialogOpen && categoryToDelete?._id === category._id} 
+                        <AlertDialog
+                          open={
+                            deleteDialogOpen &&
+                            categoryToDelete?._id === category._id
+                          }
                           onOpenChange={(open) => {
                             if (!open) {
                               setDeleteDialogOpen(false);
@@ -207,10 +216,14 @@ const Category = () => {
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Delete Category</AlertDialogTitle>
+                              <AlertDialogTitle>
+                                Delete Category
+                              </AlertDialogTitle>
                               <AlertDialogDescription>
-                                Are you sure you want to delete the category "{category.name}"? 
-                                This action cannot be undone and may affect products associated with this category.
+                                Are you sure you want to delete the category "
+                                {category.name}"? This action cannot be undone
+                                and may affect products associated with this
+                                category.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -237,7 +250,8 @@ const Category = () => {
 
           {searchTerm && filteredCategories.length > 0 && (
             <div className="mt-4 text-sm text-gray-600">
-              Showing {filteredCategories.length} of {categories.length} categories
+              Showing {filteredCategories.length} of {categories.length}{" "}
+              categories
             </div>
           )}
         </CardContent>

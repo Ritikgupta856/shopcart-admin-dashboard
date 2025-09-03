@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
-const AddCategory = () => {
+const AddCategory = ({ onClose, onCategoryAdded }) => {
   const [category, setCategory] = useState({
     name: "",
     slug: "",
@@ -13,15 +14,41 @@ const AddCategory = () => {
   });
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleDragOver = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      setCategory(prev => ({ ...prev, image: file }));
+    } else {
+      toast.error("Please upload an image file");
+    }
+  }, []);
 
   const generateSlug = (name) => {
     return name
       .toLowerCase()
       .trim()
-      .replace(/[^a-z0-9\s-]/g, "") 
-      .replace(/\s+/g, "-") 
-      .replace(/-+/g, "-") 
-      .replace(/^-|-$/g, ""); 
+      .replace(/[^a-z0-9\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
   };
 
   const changeHandler = (e) => {
@@ -67,7 +94,6 @@ const AddCategory = () => {
     setIsLoading(true);
 
     try {
-      
       const formData = new FormData();
       formData.append("category", category.image);
 
@@ -82,14 +108,12 @@ const AddCategory = () => {
       );
 
       if (uploadResponse.data.success) {
-        
         const categoryData = {
           name: category.name.trim(),
           slug: category.slug.trim(),
           image: uploadResponse.data.image_URL,
         };
 
-        
         const addCategoryResponse = await axios.post(
           `${import.meta.env.VITE_SERVER_URL}/api/categories`,
           categoryData
@@ -97,14 +121,17 @@ const AddCategory = () => {
 
         if (addCategoryResponse.data.success) {
           toast.success("Category added successfully");
-          console.log("Category added successfully:", addCategoryResponse.data);
 
-          
+          // Reset form
           setCategory({
             name: "",
             slug: "",
-            image: null
+            image: null,
           });
+
+    
+          if (onClose) onClose();
+          if (onCategoryAdded) onCategoryAdded();
         } else {
           toast.error(
             addCategoryResponse.data.message || "Failed to add category"
@@ -123,74 +150,134 @@ const AddCategory = () => {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="mb-6">
-        <h2 className="text-lg font-semibold">Add Category</h2>
+      <div className="mb-8 border-b pb-4">
+        <h2 className="text-xl font-semibold text-gray-900">Add Category</h2>
+        <p className="text-sm text-gray-500 mt-1">Create a new category for your products</p>
       </div>
 
-      <div className="flex-1">
-        <div className="space-y-6">
-          <form onSubmit={onSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="name" className="text-sm font-medium">
-                Name <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="name"
-                type="text"
-                name="name"
-                value={category.name}
-                onChange={changeHandler}
-                className="w-full"
-                disabled={isLoading}
-                required
-              />
-            </div>
+      <div className="flex-1 overflow-y-auto px-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+        <form onSubmit={onSubmit} className="space-y-8">
+          <div className="space-y-3">
+            <Label htmlFor="name" className="text-sm font-medium text-gray-700">
+              Name <span className="text-red-500">*</span>
+            </Label>
+            <Input
+              id="name"
+              type="text"
+              name="name"
+              value={category.name}
+              onChange={changeHandler}
+              disabled={isLoading}
+              required
+              placeholder="Enter category name"
+              className="shadow-sm"
+            />
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="slug" className="text-sm font-medium">
-                Slug <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="slug"
-                type="text"
-                name="slug"
-                value={category.slug}
-                onChange={changeHandler}
-                className="w-full"
-                disabled={isLoading}
-                required
-              />
-            </div>
+          <div className="space-y-3">
+            <Label htmlFor="slug" className="text-sm font-medium text-gray-700 flex items-center justify-between">
+              <span>Slug <span className="text-red-500">*</span></span>
+              <span className="text-xs text-gray-400">Auto-generated from name</span>
+            </Label>
+            <Input
+              id="slug"
+              type="text"
+              name="slug"
+              value={category.slug}
+              onChange={changeHandler}
+              disabled={isLoading}
+              required
+              placeholder="category-slug"
+              className="shadow-sm bg-gray-50"
+            />
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="image" className="text-sm font-medium">
-                Image <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="image"
-                type="file"
-                name="image"
-                onChange={changeHandler}
-                accept="image/*"
-                className="w-full"
-                disabled={isLoading}
-                required
-              />
+          <div className="space-y-3">
+            <Label htmlFor="image" className="text-sm font-medium text-gray-700">
+              Image <span className="text-red-500">*</span>
+            </Label>
+            <div
+              className={cn(
+                "mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-lg transition-colors",
+                isDragging 
+                  ? "border-primary-500 bg-primary-50" 
+                  : "border-gray-300 hover:border-gray-400",
+                category.image ? "border-green-300 bg-green-50" : ""
+              )}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              <div className="space-y-1 text-center">
+                {category.image ? (
+                  <div className="space-y-2">
+                    <svg className="mx-auto h-12 w-12 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <p className="text-sm text-green-600">Image selected: {category.image.name}</p>
+                    <button
+                      type="button"
+                      onClick={() => setCategory(prev => ({ ...prev, image: null }))}
+                      className="text-xs text-red-500 hover:text-red-700"
+                    >
+                      Remove image
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                      <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <div className="flex text-sm text-gray-600">
+                      <label htmlFor="image" className="relative cursor-pointer rounded-md font-medium text-primary-600 hover:text-primary-500">
+                        <span>Upload a file</span>
+                        <Input
+                          id="image"
+                          name="image"
+                          type="file"
+                          onChange={changeHandler}
+                          accept="image/*"
+                          className="sr-only"
+                          disabled={isLoading}
+                          required
+                        />
+                      </label>
+                      <p className="pl-1">or drag and drop</p>
+                    </div>
+                    <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                  </>
+                )}
+              </div>
             </div>
+          </div>
 
-            <div className="pt-4">
-              <Button
-                type="submit"
-                variant="default"
-                disabled={isLoading}
-                className="w-full"
-              >
-                {isLoading ? "Adding Category..." : "Add Category"}
-              </Button>
-            </div>
-          </form>
-        </div>
+          <div className="pt-6">
+            <Button
+              type="submit"
+              variant="default"
+              disabled={isLoading}
+              className="w-full py-6 text-base font-medium shadow-sm"
+            >
+              {isLoading ? (
+                <div className="flex items-center justify-center">
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Adding Category...
+                </div>
+              ) : (
+                "Add Category"
+              )}
+            </Button>
+          </div>
+        </form>
       </div>
+      <style>{`
+        .flex-1::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
     </div>
   );
 };

@@ -10,6 +10,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { AppContext } from "@/Context/AppContext";
 import toast from "react-hot-toast";
 import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet";
@@ -19,7 +29,7 @@ import { Input } from "@/components/ui/input";
 
 
 const Products = () => {
-  const { products } = useContext(AppContext);
+  const { products,getProducts } = useContext(AppContext);
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -36,9 +46,10 @@ const Products = () => {
     if (!productToDelete) return;
     setIsLoading(true);
     try {
-      const response = await axios.post(`${import.meta.env.VITE_SERVER_URL}/api/removeproduct`, { id: productToDelete._id });
+      const response = await axios.delete(`${import.meta.env.VITE_SERVER_URL}/api/products/${productToDelete._id}`);
       toast.success("Product removed successfully");
       setProductToDelete(null);
+      getProducts();
     } catch (error) {
       toast.error("Error removing Product");
     } finally {
@@ -55,12 +66,15 @@ const Products = () => {
             description="Manage your products"
           />
         </div>
-        <Sheet open={open} onOpenChange={setOpen}>
+         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
             <Button className="w-full sm:w-auto">+ Add New Product</Button>
           </SheetTrigger>
           <SheetContent side="right" className="w-full sm:w-96">
-            <AddProducts />
+            <AddProducts
+              onClose={() => setOpen(false)}
+              onProductAdded={() => getProducts()}
+            />
           </SheetContent>
         </Sheet>
       </div>
@@ -143,7 +157,7 @@ const Products = () => {
                     </div>
                   </TableCell>
                   <TableCell className="font-medium">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(product.price)}</TableCell>
-                  <TableCell className="font-medium">{product.category}</TableCell>
+                  <TableCell className="font-medium">{product.category.name}</TableCell>
                   <TableCell className="text-center">
                     <Button
                       variant="ghost"
@@ -167,20 +181,33 @@ const Products = () => {
         </div>
       )}
       {/* Delete Dialog */}
-      {productToDelete && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-30">
-          <div className="bg-white rounded-lg p-6 shadow-lg w-full max-w-sm">
-            <h2 className="text-lg font-semibold mb-2">Delete Product</h2>
-            <p className="mb-4">Are you sure you want to delete the product "{productToDelete.name}"?</p>
-            <div className="flex justify-end gap-2">
-              <Button onClick={() => setProductToDelete(null)} disabled={isLoading} variant="outline">Cancel</Button>
-              <Button onClick={removeProduct} disabled={isLoading} className="bg-red-600 hover:bg-red-700 focus:ring-red-600">
-                {isLoading ? "Deleting..." : "Delete"}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AlertDialog
+        open={productToDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setProductToDelete(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Product</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the product "{productToDelete?.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={removeProduct}
+              disabled={isLoading}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {isLoading ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

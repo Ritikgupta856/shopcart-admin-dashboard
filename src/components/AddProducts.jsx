@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext, useState, useCallback } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { AppContext } from "@/Context/AppContext";
 import Heading from "./Heading";
+import { cn } from "@/lib/utils";
 
-const AddProducts = () => {
+const AddProducts = ({ onClose, onProductAdded }) => {
   const { categories } = useContext(AppContext);
 
   const [product, setProduct] = useState({
@@ -20,6 +21,32 @@ const AddProducts = () => {
     category: "",
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleDragOver = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      setProduct(prev => ({ ...prev, image: file }));
+    } else {
+      toast.error("Please upload an image file");
+    }
+  }, []);
 
   const generateSlug = (name) => {
     return name
@@ -90,7 +117,7 @@ const AddProducts = () => {
         };
         try {
           const addProductResponse = await axios.post(
-            `${import.meta.env.VITE_SERVER_URL}/api/product`,
+            `${import.meta.env.VITE_SERVER_URL}/api/products`,
             productData
           );
           if (addProductResponse.data.success) {
@@ -102,6 +129,8 @@ const AddProducts = () => {
               image: null,
               category: "",
             });
+            onClose();
+            if (onProductAdded) onProductAdded();
           } else {
             toast.error(addProductResponse.data.message || "Failed to add product");
           }
@@ -119,15 +148,17 @@ const AddProducts = () => {
   };
 
   return (
-  <div className="h-full flex flex-col overflow-y-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-      <div className="mb-6">
-        <h2 className="text-lg font-semibold">Add Product</h2>
+    <div className="h-full flex flex-col">
+      <div className="mb-8 border-b pb-4">
+        <h2 className="text-xl font-semibold text-gray-900">Add Product</h2>
+        <p className="text-sm text-gray-500 mt-1">Add a new product to your store</p>
       </div>
-      <div className="flex-1">
-        <div className="space-y-6">
-          <form onSubmit={onSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="name" className="text-sm font-medium">
+
+      <div className="flex-1 overflow-y-auto px-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+        <form onSubmit={onSubmit} className="space-y-8">
+          <div className="grid grid-cols-1 gap-6">
+            <div className="space-y-3">
+              <Label htmlFor="name" className="text-sm font-medium text-gray-700">
                 Name <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -136,14 +167,17 @@ const AddProducts = () => {
                 name="name"
                 value={product.name}
                 onChange={changeHandler}
-                className="w-full"
+                className="shadow-sm"
                 disabled={isLoading}
+                placeholder="Enter product name"
                 required
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="slug" className="text-sm font-medium">
-                Slug <span className="text-red-500">*</span>
+
+            <div className="space-y-3">
+              <Label htmlFor="slug" className="text-sm font-medium text-gray-700 flex items-center justify-between">
+                <span>Slug <span className="text-red-500">*</span></span>
+                <span className="text-xs text-gray-400">Auto-generated from name</span>
               </Label>
               <Input
                 id="slug"
@@ -151,62 +185,60 @@ const AddProducts = () => {
                 name="slug"
                 value={product.slug}
                 onChange={changeHandler}
-                className="w-full"
+                className="shadow-sm bg-gray-50"
                 disabled={isLoading}
+                placeholder="product-slug"
                 required
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="description" className="text-sm font-medium">
-                Description
-              </Label>
-              <Textarea
-                id="description"
-                name="description"
-                value={product.description}
-                onChange={changeHandler}
-                className="w-full"
-                disabled={isLoading}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="price" className="text-sm font-medium">
+          </div>
+
+          <div className="space-y-3">
+            <Label htmlFor="description" className="text-sm font-medium text-gray-700">
+              Description
+            </Label>
+            <Textarea
+              id="description"
+              name="description"
+              value={product.description}
+              onChange={changeHandler}
+              className="shadow-sm min-h-[100px]"
+              disabled={isLoading}
+              placeholder="Enter product description..."
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-6">
+            <div className="space-y-3">
+              <Label htmlFor="price" className="text-sm font-medium text-gray-700">
                 Price <span className="text-red-500">*</span>
               </Label>
-              <Input
-                id="price"
-                type="number"
-                name="price"
-                value={product.price}
-                onChange={changeHandler}
-                className="w-full"
-                disabled={isLoading}
-                required
-              />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span className="text-gray-500 sm:text-sm">₹</span>
+                </div>
+                <Input
+                  id="price"
+                  type="number"
+                  name="price"
+                  value={product.price}
+                  onChange={changeHandler}
+                  className="pl-7 shadow-sm"
+                  disabled={isLoading}
+                  placeholder="0.00"
+                  required
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="image" className="text-sm font-medium">
-                Image <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="image"
-                type="file"
-                name="image"
-                onChange={changeHandler}
-                accept="image/*"
-                className="w-full"
-                disabled={isLoading}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="category" className="text-sm font-medium">
+
+            <div className="space-y-3">
+              <Label htmlFor="category" className="text-sm font-medium text-gray-700">
                 Category <span className="text-red-500">*</span>
               </Label>
               <select
                 id="category"
                 name="category"
-                className="w-full border rounded-md p-2"
+                className="w-full border rounded-md shadow-sm py-2 pl-3 pr-10 text-base focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 value={product.category}
                 onChange={changeHandler}
                 disabled={isLoading}
@@ -214,27 +246,97 @@ const AddProducts = () => {
               >
                 <option value="">Select a category</option>
                 {categories.map((category) => (
-                  <option key={category._id} value={category.name}>
+                  <option key={category._id} value={category._id}>
                     {category.name}
                   </option>
                 ))}
               </select>
             </div>
-            <div className="pt-4">
-              <Button
-                type="submit"
-                variant="default"
-                disabled={isLoading}
-                className="w-full"
-              >
-                {isLoading ? "Adding Product..." : "Add Product"}
-              </Button>
+          </div>
+
+          <div className="space-y-3">
+            <Label htmlFor="image" className="text-sm font-medium text-gray-700">
+              Image <span className="text-red-500">*</span>
+            </Label>
+            <div
+              className={cn(
+                "mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-lg transition-colors",
+                isDragging 
+                  ? "border-primary-500 bg-primary-50" 
+                  : "border-gray-300 hover:border-gray-400",
+                product.image ? "border-green-300 bg-green-50" : ""
+              )}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              <div className="space-y-1 text-center">
+                {product.image ? (
+                  <div className="space-y-2">
+                    <svg className="mx-auto h-12 w-12 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <p className="text-sm text-green-600">Image selected: {product.image.name}</p>
+                    <button
+                      type="button"
+                      onClick={() => setProduct(prev => ({ ...prev, image: null }))}
+                      className="text-xs text-red-500 hover:text-red-700"
+                    >
+                      Remove image
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                      <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <div className="flex text-sm text-gray-600">
+                      <label htmlFor="image" className="relative cursor-pointer rounded-md font-medium text-primary-600 hover:text-primary-500">
+                        <span>Upload a file</span>
+                        <Input
+                          id="image"
+                          name="image"
+                          type="file"
+                          onChange={changeHandler}
+                          accept="image/*"
+                          className="sr-only"
+                          disabled={isLoading}
+                          required
+                        />
+                      </label>
+                      <p className="pl-1">or drag and drop</p>
+                    </div>
+                    <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                  </>
+                )}
+              </div>
             </div>
-          </form>
-        </div>
+          </div>
+
+          <div className="pt-6">
+            <Button
+              type="submit"
+              variant="default"
+              disabled={isLoading}
+              className="w-full py-6 text-base font-medium shadow-sm"
+            >
+              {isLoading ? (
+                <div className="flex items-center justify-center">
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Adding Product...
+                </div>
+              ) : (
+                "Add Product"
+              )}
+            </Button>
+          </div>
+        </form>
       </div>
       <style>{`
-        .flex.flex-col::-webkit-scrollbar {
+        .flex-1::-webkit-scrollbar {
           display: none;
         }
       `}</style>
