@@ -30,17 +30,23 @@ export function UserMenu({ user }) {
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              className="h-14 px-3 rounded-xl hover:bg-slate-100 dark:hover:bg-zinc-800 transition-all duration-300 data-[state=open]:bg-slate-100 dark:data-[state=open]:bg-zinc-800"
             >
-              <Avatar className="h-8 w-8 rounded-lg">
+              <Avatar className="h-9 w-9 rounded-xl border-2 border-white shadow-sm dark:border-zinc-800">
                 <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                <AvatarFallback className="rounded-xl bg-primary text-primary-foreground text-xs font-bold">
+                  {user.name?.charAt(0) || 'U'}
+                </AvatarFallback>
               </Avatar>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">{user.name}</span>
-                <span className="truncate text-xs">{user.email}</span>
+              <div className="grid flex-1 text-left leading-tight ml-1">
+                <span className="truncate font-bold text-[15px] text-slate-900 dark:text-slate-100">
+                  {user.name}
+                </span>
+                <span className="truncate text-[11px] font-medium text-slate-500">
+                  {user.email}
+                </span>
               </div>
-              <ChevronsUpDown className="ml-auto size-4" />
+              <ChevronsUpDown className="ml-auto size-4 text-slate-400" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent

@@ -38,32 +38,33 @@ export function AdminSidebar({ ...props }) {
 
   return (
     <Sidebar collapsible="icon" {...props}>
-      {/* ---- Header ---- */}
       <SidebarHeader>
-        <div className="flex items-center gap-3 w-full px-2 py-3 rounded-lg hover:bg-accent/50 transition">
-          <img
-            src="/logo.svg"
-            alt="Shopcart CMS Logo"
-            className="size-9 rounded-lg"
-          />
+        <div className="flex items-center gap-3 w-full mt-2 rounded-xl hover:bg-slate-100 dark:hover:bg-zinc-800 transition-all duration-300 group cursor-pointer">
+          <div className="flex items-center justify-center size-11 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
+            <img
+              src="/logo.svg"
+              alt="Shopcart CMS Logo"
+              className="size-8 group-hover:scale-110 transition-transform duration-300"
+            />
+          </div>
           <div className="flex flex-col text-left">
-            <span className="truncate text-base font-semibold">
-              Shopcart Admin
+            <span className="truncate text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100">
+              Shopcart
             </span>
-            <span className="truncate text-xs text-muted-foreground">
-              Manage your store
+            <span className="truncate text-xs font-medium text-slate-500">
+              Admin Dashboard
             </span>
           </div>
         </div>
       </SidebarHeader>
 
       {/* ---- Main Nav ---- */}
-      <SidebarContent className="mt-4">
+      <SidebarContent className="mt-2">
         <NavMain items={data.navMain} />
       </SidebarContent>
 
       {/* ---- Footer / User ---- */}
-      <SidebarFooter className="border-t pt-3">
+      <SidebarFooter>
         <UserMenu user={data.user} />
       </SidebarFooter>
 
