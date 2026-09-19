@@ -1,5 +1,5 @@
 import { useContext, useState, useMemo } from "react";
-import axios from "axios";
+import api from "@/lib/api";
 import { MdOutlineClose, MdSearch } from "react-icons/md";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +26,7 @@ import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet";
 import AddProducts from "../components/AddProducts";
 import Heading from "../components/Heading";
 import { Input } from "@/components/ui/input";
+import { StockBadge } from "@/components/StatusBadge";
 
 
 const Products = () => {
@@ -46,7 +47,7 @@ const Products = () => {
     if (!productToDelete) return;
     setIsLoading(true);
     try {
-      const response = await axios.delete(`${import.meta.env.VITE_SERVER_URL}/api/products/${productToDelete._id}`);
+      const response = await api.delete(`/api/products/${productToDelete._id}`);
       toast.success("Product removed successfully");
       setProductToDelete(null);
       getProducts();
@@ -57,68 +58,71 @@ const Products = () => {
     }
   };
 
+  const getStock = (product) =>
+    product.hasVariants ? product.totalStock : product.stock ?? product.totalStock ?? 0;
+
   return (
-    <div className="w-full min-h-screen p-0 sm:p-4 md:p-8 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <Heading
-            title={`Products (${products.length})`}
-            description="Manage your products"
-          />
-        </div>
-         <Sheet open={open} onOpenChange={setOpen}>
-          <SheetTrigger asChild>
-            <Button className="w-full sm:w-auto">+ Add New Product</Button>
-          </SheetTrigger>
-          <SheetContent side="right" className="w-full sm:w-96">
-            <AddProducts
-              onClose={() => setOpen(false)}
-              onProductAdded={() => getProducts()}
-            />
-          </SheetContent>
-        </Sheet>
-      </div>
-      <div className="relative mb-6">
-        <MdSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+    <div className="w-full min-h-screen p-4 sm:p-6 md:p-8 space-y-6 bg-background">
+      <Heading
+        title="Products"
+        description="Manage your product catalog and inventory."
+        actions={
+          <Sheet open={open} onOpenChange={setOpen}>
+            <SheetTrigger asChild>
+              <Button className="w-full sm:w-auto">+ Add Product</Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-full sm:w-96">
+              <AddProducts
+                onClose={() => setOpen(false)}
+                onProductAdded={() => getProducts()}
+              />
+            </SheetContent>
+          </Sheet>
+        }
+      />
+      <div className="relative">
+        <MdSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-muted-2 h-4 w-4" />
         <Input
           placeholder="Search products..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
+          className="pl-10 max-w-sm"
         />
       </div>
-      <div className="rounded-md border overflow-hidden">
+      <div className="rounded-xl border border-border overflow-hidden bg-card shadow-soft">
         <Table>
           <TableHeader>
-            <TableRow className="bg-gray-50/50">
+            <TableRow className="bg-secondary hover:bg-secondary">
               <TableHead className="w-16 text-center">#</TableHead>
-              <TableHead className="w-32">Thumbnail</TableHead>
-              <TableHead>Product Name</TableHead>
+              <TableHead className="w-20">Image</TableHead>
+              <TableHead>Product</TableHead>
               <TableHead>Price</TableHead>
               <TableHead>Category</TableHead>
+              <TableHead>Stock</TableHead>
               <TableHead className="w-20 text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredProducts.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8">
+                <TableCell colSpan={7} className="text-center py-10">
                   {searchTerm ? (
                     <div className="space-y-2">
-                      <p className="text-gray-500">
+                      <p className="text-text-secondary text-sm">
                         No products found matching "{searchTerm}"
                       </p>
                       <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => setSearchTerm("")}
-                        className="text-sm"
                       >
                         Clear search
                       </Button>
                     </div>
                   ) : (
-                    <div className="space-y-2">
-                      <p className="text-gray-500">No products found</p>
-                      <p className="text-sm text-gray-400">
+                    <div className="space-y-1">
+                      <p className="text-text-secondary text-sm">No products found</p>
+                      <p className="text-xs text-text-muted-2">
                         Add your first product to get started
                       </p>
                     </div>
@@ -127,10 +131,10 @@ const Products = () => {
               </TableRow>
             ) : (
               filteredProducts.map((product, index) => (
-                <TableRow key={product._id} className="hover:bg-gray-50/50">
-                  <TableCell className="text-center font-medium">{index + 1}</TableCell>
+                <TableRow key={product._id} className="hover:bg-secondary/60">
+                  <TableCell className="text-center text-text-secondary text-sm">{index + 1}</TableCell>
                   <TableCell>
-                    <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-secondary flex items-center justify-center">
                       {product.image ? (
                         <img
                           src={product.image}
@@ -143,7 +147,7 @@ const Products = () => {
                         />
                       ) : null}
                       <div
-                        className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs"
+                        className="w-full h-full bg-secondary flex items-center justify-center text-text-muted-2 text-[10px]"
                         style={{ display: product.image ? "none" : "flex" }}
                       >
                         No Image
@@ -151,20 +155,23 @@ const Products = () => {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="space-y-1">
-                      <p className="font-medium text-gray-900">{product.name}</p>
-                      <p className="text-sm text-gray-500">ID: {product._id}</p>
+                    <div className="space-y-0.5">
+                      <p className="font-medium text-foreground text-sm">{product.name}</p>
+                      <p className="text-xs text-text-muted-2">ID: {product._id.slice(-8)}</p>
                     </div>
                   </TableCell>
-                  <TableCell className="font-medium">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(product.price)}</TableCell>
-                  <TableCell className="font-medium">{product.category.name}</TableCell>
+                  <TableCell className="font-medium text-sm text-foreground">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(product.price)}</TableCell>
+                  <TableCell className="text-sm text-text-secondary">{product.category.name}</TableCell>
+                  <TableCell>
+                    <StockBadge stock={getStock(product)} />
+                  </TableCell>
                   <TableCell className="text-center">
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => setProductToDelete(product)}
                       disabled={isLoading}
-                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                      className="h-8 w-8 p-0 text-danger hover:text-danger hover:bg-danger-bg"
                     >
                       <MdOutlineClose className="h-4 w-4" />
                     </Button>
@@ -176,7 +183,7 @@ const Products = () => {
         </Table>
       </div>
       {searchTerm && filteredProducts.length > 0 && (
-        <div className="mt-4 text-sm text-gray-600">
+        <div className="text-sm text-text-muted-2">
           Showing {filteredProducts.length} of {products.length} products
         </div>
       )}
@@ -201,7 +208,7 @@ const Products = () => {
             <AlertDialogAction
               onClick={removeProduct}
               disabled={isLoading}
-              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+              className="bg-danger text-white hover:bg-danger/90 focus:ring-danger"
             >
               {isLoading ? "Deleting..." : "Delete"}
             </AlertDialogAction>

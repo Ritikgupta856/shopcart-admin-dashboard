@@ -1,5 +1,7 @@
 import { ChevronsUpDown, LogOut } from "lucide-react";
-import { useClerk } from "@clerk/clerk-react";
+import { useContext } from "react";
+import { useNavigate } from "react-router-dom";
+import { AuthContext } from "@/Context/AuthContext";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -17,10 +19,12 @@ import {
 
 export function UserMenu({ user }) {
   const { isMobile } = useSidebar();
-  const { signOut } = useClerk();
+  const { logout } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   const handleSignOut = () => {
-    signOut({ redirectUrl: "/sign-in" });
+    logout();
+    navigate("/sign-in", { replace: true });
   };
 
   return (
@@ -30,23 +34,23 @@ export function UserMenu({ user }) {
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="h-14 px-3 rounded-xl hover:bg-slate-100 dark:hover:bg-zinc-800 transition-all duration-300 data-[state=open]:bg-slate-100 dark:data-[state=open]:bg-zinc-800"
+              className="h-auto px-2 py-2 mx-1 rounded-lg hover:bg-secondary transition-colors data-[state=open]:bg-secondary"
             >
-              <Avatar className="h-9 w-9 rounded-xl border-2 border-white shadow-sm dark:border-zinc-800">
+              <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="rounded-xl bg-primary text-primary-foreground text-xs font-bold">
+                <AvatarFallback className="rounded-lg bg-primary text-primary-foreground text-xs font-semibold">
                   {user.name?.charAt(0) || 'U'}
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left leading-tight ml-1">
-                <span className="truncate font-bold text-[15px] text-slate-900 dark:text-slate-100">
+                <span className="truncate font-medium text-sm text-foreground">
                   {user.name}
                 </span>
-                <span className="truncate text-[11px] font-medium text-slate-500">
+                <span className="truncate text-[11px] text-text-muted-2">
                   {user.email}
                 </span>
               </div>
-              <ChevronsUpDown className="ml-auto size-4 text-slate-400" />
+              <ChevronsUpDown className="ml-auto size-4 text-text-muted-2" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent

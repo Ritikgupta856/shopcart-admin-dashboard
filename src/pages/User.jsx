@@ -26,55 +26,52 @@ const User = () => {
   }, [users, searchTerm]);
 
   return (
-    <div className="w-full min-h-screen p-0 sm:p-4 md:p-8 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <Heading
-            title={`Users (${users.length})`}
-            description="Manage your users"
-          />
-        </div>
-      </div>
-      <div className="relative mb-6">
-        <MdSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+    <div className="w-full min-h-screen p-4 sm:p-6 md:p-8 space-y-6 bg-background">
+      <Heading
+        title="Customers"
+        description="View registered customers."
+      />
+      <div className="relative max-w-sm">
+        <MdSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-muted-2 h-4 w-4" />
         <Input
-          placeholder="Search users by name or email..."
+          placeholder="Search customers by name or email..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10"
         />
       </div>
-      <div className="rounded-md border overflow-hidden">
+      <div className="rounded-xl border border-border overflow-hidden bg-card shadow-soft">
         <Table>
           <TableHeader>
-            <TableRow className="bg-gray-50/50">
+            <TableRow className="bg-secondary hover:bg-secondary">
               <TableHead className="w-16 text-center">#</TableHead>
               <TableHead>Full Name</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>Created At</TableHead>
+              <TableHead>Joined</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredUsers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-8">
+                <TableCell colSpan={4} className="text-center py-10">
                   {searchTerm ? (
                     <div className="space-y-2">
-                      <p className="text-gray-500">
-                        No users found matching "{searchTerm}"
+                      <p className="text-text-secondary text-sm">
+                        No customers found matching "{searchTerm}"
                       </p>
                       <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => setSearchTerm("")}
-                        className="text-sm"
                       >
                         Clear search
                       </Button>
                     </div>
                   ) : (
-                    <div className="space-y-2">
-                      <p className="text-gray-500">No users found</p>
-                      <p className="text-sm text-gray-400">
-                        No users have been added yet
+                    <div className="space-y-1">
+                      <p className="text-text-secondary text-sm">No customers found</p>
+                      <p className="text-xs text-text-muted-2">
+                        No customers have registered yet
                       </p>
                     </div>
                   )}
@@ -82,11 +79,11 @@ const User = () => {
               </TableRow>
             ) : (
               filteredUsers.map((user, index) => (
-                <TableRow key={user._id} className="hover:bg-gray-50/50">
-                  <TableCell className="text-center font-medium">{index + 1}</TableCell>
-                  <TableCell className="font-medium">{user.fullname}</TableCell>
-                  <TableCell className="font-medium">{user.email}</TableCell>
-                  <TableCell className="font-medium">{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "-"}</TableCell>
+                <TableRow key={user._id} className="hover:bg-secondary/60">
+                  <TableCell className="text-center text-text-secondary text-sm">{index + 1}</TableCell>
+                  <TableCell className="font-medium text-sm text-foreground">{user.fullname}</TableCell>
+                  <TableCell className="text-sm text-text-secondary">{user.email}</TableCell>
+                  <TableCell className="text-sm text-text-secondary">{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "-"}</TableCell>
                 </TableRow>
               ))
             )}
@@ -94,8 +91,8 @@ const User = () => {
         </Table>
       </div>
       {searchTerm && filteredUsers.length > 0 && (
-        <div className="mt-4 text-sm text-gray-600">
-          Showing {filteredUsers.length} of {users.length} users
+        <div className="text-sm text-text-muted-2">
+          Showing {filteredUsers.length} of {users.length} customers
         </div>
       )}
     </div>

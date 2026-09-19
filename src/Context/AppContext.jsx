@@ -1,4 +1,4 @@
-import axios from "axios";
+import api from "@/lib/api";
 import { createContext, useEffect, useState } from "react";
 
 export const AppContext = createContext();
@@ -9,13 +9,13 @@ const AppProvider = ({ children }) => {
   const [users, setUsers] = useState([]);
   const [orders, setOrders] = useState([]);
   const [totalRevenue, setTotalRevenue] = useState("0");
+  const [banners, setBanners] = useState([]);
+  const [deals, setDeals] = useState([]);
 
   // ✅ Fetch categories
   const getCategories = async () => {
     try {
-      const categoryResponse = await axios.get(
-        `${import.meta.env.VITE_SERVER_URL}/api/categories`
-      );
+      const categoryResponse = await api.get("/api/categories");
       setCategories(categoryResponse.data.categories);
     } catch (error) {
       console.error("Error fetching categories:", error);
@@ -25,9 +25,7 @@ const AppProvider = ({ children }) => {
   // ✅ Fetch products
   const getProducts = async () => {
     try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_SERVER_URL}/api/products`
-      );
+      const response = await api.get("/api/products");
       setProducts(response.data.products);
     } catch (error) {
       console.error("Error fetching products:", error);
@@ -37,9 +35,7 @@ const AppProvider = ({ children }) => {
   // ✅ Fetch orders
   const getOrdersDetails = async () => {
     try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_SERVER_URL}/api/orders`
-      );
+      const response = await api.get("/api/orders");
       setOrders(response.data.orders);
       setTotalRevenue(response.data.totalRevenue);
     } catch (error) {
@@ -50,21 +46,43 @@ const AppProvider = ({ children }) => {
   // ✅ Fetch users
   const getUsers = async () => {
     try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_SERVER_URL}/api/users`
-      );
+      const response = await api.get("/api/users");
       setUsers(response.data);
     } catch (error) {
       console.error("Error fetching users:", error);
     }
   };
 
+  // ✅ Fetch banners
+  const getBanners = async () => {
+    try {
+      const response = await api.get("/api/banners");
+      setBanners(response.data.banners);
+    } catch (error) {
+      console.error("Error fetching banners:", error);
+    }
+  };
+
+  // ✅ Fetch deals
+  const getDeals = async () => {
+    try {
+      const response = await api.get("/api/deals");
+      setDeals(response.data.deals);
+    } catch (error) {
+      console.error("Error fetching deals:", error);
+    }
+  };
+
   // Run once on mount
   useEffect(() => {
+    const token = localStorage.getItem("admin_token");
+    if (!token) return;
     getCategories();
     getProducts();
     getOrdersDetails();
     getUsers();
+    getBanners();
+    getDeals();
   }, []);
 
   return (
@@ -75,10 +93,14 @@ const AppProvider = ({ children }) => {
         users,
         orders,
         totalRevenue,
-        getCategories,  
+        banners,
+        deals,
+        getCategories,
         getProducts,
         getOrdersDetails,
         getUsers,
+        getBanners,
+        getDeals,
       }}
     >
       {children}

@@ -1,5 +1,5 @@
 import { useContext, useState, useCallback } from "react";
-import axios from "axios";
+import api from "@/lib/api";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AppContext } from "@/Context/AppContext";
 import Heading from "./Heading";
 import { cn } from "@/lib/utils";
+import { X } from "lucide-react";
 
 const AddProducts = ({ onClose, onProductAdded }) => {
   const { categories } = useContext(AppContext);
@@ -19,7 +20,9 @@ const AddProducts = ({ onClose, onProductAdded }) => {
     price: "",
     image: null,
     category: "",
+    stock: "",
   });
+  const [variants, setVariants] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -70,6 +73,20 @@ const AddProducts = ({ onClose, onProductAdded }) => {
     }
   };
 
+  const addVariantRow = () => {
+    setVariants((prev) => [...prev, { size: "", color: "", stock: "" }]);
+  };
+
+  const updateVariantRow = (index, field, value) => {
+    setVariants((prev) =>
+      prev.map((v, i) => (i === index ? { ...v, [field]: value } : v))
+    );
+  };
+
+  const removeVariantRow = (index) => {
+    setVariants((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const validateForm = () => {
     if (!product.name.trim()) {
       toast.error("Product name is required");
@@ -91,6 +108,21 @@ const AddProducts = ({ onClose, onProductAdded }) => {
       toast.error("Product image is required");
       return false;
     }
+    if (variants.length > 0) {
+      for (const v of variants) {
+        if (!v.size.trim() && !v.color.trim()) {
+          toast.error("Each variant needs a size or a color");
+          return false;
+        }
+        if (v.stock === "" || isNaN(v.stock) || Number(v.stock) < 0) {
+          toast.error("Each variant needs a valid stock quantity");
+          return false;
+        }
+      }
+    } else if (product.stock === "" || isNaN(product.stock) || Number(product.stock) < 0) {
+      toast.error("Valid stock quantity is required");
+      return false;
+    }
     return true;
   };
 
@@ -101,8 +133,8 @@ const AddProducts = ({ onClose, onProductAdded }) => {
     try {
       let formData = new FormData();
       formData.append("product", product.image);
-      const response = await axios.post(
-        `${import.meta.env.VITE_SERVER_URL}/api/upload/product`,
+      const response = await api.post(
+        "/api/upload/product",
         formData,
         {
           headers: {
@@ -114,21 +146,30 @@ const AddProducts = ({ onClose, onProductAdded }) => {
         const productData = {
           ...product,
           image: response.data.image_URL,
+          variants: variants.map((v) => ({
+            size: v.size.trim(),
+            color: v.color.trim(),
+            stock: Number(v.stock),
+          })),
+          stock: variants.length === 0 ? Number(product.stock) : undefined,
         };
         try {
-          const addProductResponse = await axios.post(
-            `${import.meta.env.VITE_SERVER_URL}/api/products`,
+          const addProductResponse = await api.post(
+            "/api/products",
             productData
           );
           if (addProductResponse.data.success) {
             toast.success("Product added successfully");
             setProduct({
               name: "",
+              slug: "",
               description: "",
               price: "",
               image: null,
               category: "",
+              stock: "",
             });
+            setVariants([]);
             onClose();
             if (onProductAdded) onProductAdded();
           } else {
@@ -149,17 +190,17 @@ const AddProducts = ({ onClose, onProductAdded }) => {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="mb-8 border-b pb-4">
-        <h2 className="text-xl font-semibold text-gray-900">Add Product</h2>
-        <p className="text-sm text-gray-500 mt-1">Add a new product to your store</p>
+      <div className="mb-6 border-b border-border pb-4">
+        <h2 className="text-lg font-semibold text-foreground">Add Product</h2>
+        <p className="text-sm text-text-secondary mt-1">Add a new product to your store</p>
       </div>
 
       <div className="flex-1 overflow-y-auto px-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         <form onSubmit={onSubmit} className="space-y-8">
           <div className="grid grid-cols-1 gap-6">
             <div className="space-y-3">
-              <Label htmlFor="name" className="text-sm font-medium text-gray-700">
-                Name <span className="text-red-500">*</span>
+              <Label htmlFor="name" className="text-sm font-medium text-foreground">
+                Name <span className="text-danger">*</span>
               </Label>
               <Input
                 id="name"
@@ -175,9 +216,9 @@ const AddProducts = ({ onClose, onProductAdded }) => {
             </div>
 
             <div className="space-y-3">
-              <Label htmlFor="slug" className="text-sm font-medium text-gray-700 flex items-center justify-between">
-                <span>Slug <span className="text-red-500">*</span></span>
-                <span className="text-xs text-gray-400">Auto-generated from name</span>
+              <Label htmlFor="slug" className="text-sm font-medium text-foreground flex items-center justify-between">
+                <span>Slug <span className="text-danger">*</span></span>
+                <span className="text-xs text-text-muted-2">Auto-generated from name</span>
               </Label>
               <Input
                 id="slug"
@@ -185,7 +226,7 @@ const AddProducts = ({ onClose, onProductAdded }) => {
                 name="slug"
                 value={product.slug}
                 onChange={changeHandler}
-                className="shadow-sm bg-gray-50"
+                className="shadow-sm bg-secondary"
                 disabled={isLoading}
                 placeholder="product-slug"
                 required
@@ -194,7 +235,7 @@ const AddProducts = ({ onClose, onProductAdded }) => {
           </div>
 
           <div className="space-y-3">
-            <Label htmlFor="description" className="text-sm font-medium text-gray-700">
+            <Label htmlFor="description" className="text-sm font-medium text-foreground">
               Description
             </Label>
             <Textarea
@@ -210,12 +251,12 @@ const AddProducts = ({ onClose, onProductAdded }) => {
 
           <div className="grid grid-cols-1 gap-6">
             <div className="space-y-3">
-              <Label htmlFor="price" className="text-sm font-medium text-gray-700">
-                Price <span className="text-red-500">*</span>
+              <Label htmlFor="price" className="text-sm font-medium text-foreground">
+                Price <span className="text-danger">*</span>
               </Label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span className="text-gray-500 sm:text-sm">₹</span>
+                  <span className="text-text-muted-2 sm:text-sm">₹</span>
                 </div>
                 <Input
                   id="price"
@@ -232,13 +273,13 @@ const AddProducts = ({ onClose, onProductAdded }) => {
             </div>
 
             <div className="space-y-3">
-              <Label htmlFor="category" className="text-sm font-medium text-gray-700">
-                Category <span className="text-red-500">*</span>
+              <Label htmlFor="category" className="text-sm font-medium text-foreground">
+                Category <span className="text-danger">*</span>
               </Label>
               <select
                 id="category"
                 name="category"
-                className="w-full border rounded-md shadow-sm py-2 pl-3 pr-10 text-base focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                className="w-full border rounded-md shadow-sm py-2 pl-3 pr-10 text-base focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary"
                 value={product.category}
                 onChange={changeHandler}
                 disabled={isLoading}
@@ -255,16 +296,93 @@ const AddProducts = ({ onClose, onProductAdded }) => {
           </div>
 
           <div className="space-y-3">
-            <Label htmlFor="image" className="text-sm font-medium text-gray-700">
-              Image <span className="text-red-500">*</span>
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium text-foreground">
+                Variants (optional)
+              </Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addVariantRow}
+                disabled={isLoading}
+              >
+                + Add Variant
+              </Button>
+            </div>
+
+            {variants.length === 0 ? (
+              <div className="space-y-3">
+                <Label htmlFor="stock" className="text-sm font-medium text-foreground">
+                  Stock <span className="text-danger">*</span>
+                </Label>
+                <Input
+                  id="stock"
+                  type="number"
+                  name="stock"
+                  value={product.stock}
+                  onChange={changeHandler}
+                  disabled={isLoading}
+                  placeholder="Available quantity"
+                  className="shadow-sm"
+                  min="0"
+                  required
+                />
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {variants.map((variant, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <Input
+                      type="text"
+                      placeholder="Size (e.g. M)"
+                      value={variant.size}
+                      onChange={(e) => updateVariantRow(index, "size", e.target.value)}
+                      disabled={isLoading}
+                      className="shadow-sm"
+                    />
+                    <Input
+                      type="text"
+                      placeholder="Color (e.g. Black)"
+                      value={variant.color}
+                      onChange={(e) => updateVariantRow(index, "color", e.target.value)}
+                      disabled={isLoading}
+                      className="shadow-sm"
+                    />
+                    <Input
+                      type="number"
+                      placeholder="Stock"
+                      value={variant.stock}
+                      onChange={(e) => updateVariantRow(index, "stock", e.target.value)}
+                      disabled={isLoading}
+                      className="shadow-sm w-28"
+                      min="0"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeVariantRow(index)}
+                      disabled={isLoading}
+                      className="text-danger hover:text-danger/80 p-2"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            <Label htmlFor="image" className="text-sm font-medium text-foreground">
+              Image <span className="text-danger">*</span>
             </Label>
             <div
               className={cn(
                 "mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-lg transition-colors",
                 isDragging 
-                  ? "border-primary-500 bg-primary-50" 
-                  : "border-gray-300 hover:border-gray-400",
-                product.image ? "border-green-300 bg-green-50" : ""
+                  ? "border-primary bg-accent" 
+                  : "border-border hover:border-primary/50",
+                product.image ? "border-success bg-success-bg" : ""
               )}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
@@ -273,25 +391,25 @@ const AddProducts = ({ onClose, onProductAdded }) => {
               <div className="space-y-1 text-center">
                 {product.image ? (
                   <div className="space-y-2">
-                    <svg className="mx-auto h-12 w-12 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="mx-auto h-12 w-12 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
-                    <p className="text-sm text-green-600">Image selected: {product.image.name}</p>
+                    <p className="text-sm text-success">Image selected: {product.image.name}</p>
                     <button
                       type="button"
                       onClick={() => setProduct(prev => ({ ...prev, image: null }))}
-                      className="text-xs text-red-500 hover:text-red-700"
+                      className="text-xs text-danger hover:text-danger/80"
                     >
                       Remove image
                     </button>
                   </div>
                 ) : (
                   <>
-                    <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                    <svg className="mx-auto h-12 w-12 text-text-muted-2" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
                       <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
-                    <div className="flex text-sm text-gray-600">
-                      <label htmlFor="image" className="relative cursor-pointer rounded-md font-medium text-primary-600 hover:text-primary-500">
+                    <div className="flex text-sm text-text-secondary">
+                      <label htmlFor="image" className="relative cursor-pointer rounded-md font-medium text-primary hover:text-primary/80">
                         <span>Upload a file</span>
                         <Input
                           id="image"
@@ -306,7 +424,7 @@ const AddProducts = ({ onClose, onProductAdded }) => {
                       </label>
                       <p className="pl-1">or drag and drop</p>
                     </div>
-                    <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                    <p className="text-xs text-text-muted-2">PNG, JPG, GIF up to 10MB</p>
                   </>
                 )}
               </div>
