@@ -18,9 +18,13 @@ const AddProducts = ({ onClose, onProductAdded }) => {
     slug: "",
     description: "",
     price: "",
+    mrp: "",
+    brand: "",
     image: null,
     category: "",
     stock: "",
+    isTrending: false,
+    isNewArrival: false,
   });
   const [variants, setVariants] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -62,12 +66,14 @@ const AddProducts = ({ onClose, onProductAdded }) => {
   };
 
   const changeHandler = (e) => {
-    const { name, value, files } = e.target;
+    const { name, value, type, checked, files } = e.target;
     if (name === "image") {
       setProduct({ ...product, [name]: files[0] });
     } else if (name === "name") {
       const newSlug = generateSlug(value);
       setProduct({ ...product, name: value, slug: newSlug });
+    } else if (type === "checkbox") {
+      setProduct({ ...product, [name]: checked });
     } else {
       setProduct({ ...product, [name]: value });
     }
@@ -165,9 +171,13 @@ const AddProducts = ({ onClose, onProductAdded }) => {
               slug: "",
               description: "",
               price: "",
+              mrp: "",
+              brand: "",
               image: null,
               category: "",
               stock: "",
+              isTrending: false,
+              isNewArrival: false,
             });
             setVariants([]);
             onClose();
@@ -249,7 +259,7 @@ const AddProducts = ({ onClose, onProductAdded }) => {
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-6">
+          <div className="grid grid-cols-2 gap-6">
             <div className="space-y-3">
               <Label htmlFor="price" className="text-sm font-medium text-foreground">
                 Price <span className="text-danger">*</span>
@@ -273,6 +283,45 @@ const AddProducts = ({ onClose, onProductAdded }) => {
             </div>
 
             <div className="space-y-3">
+              <Label htmlFor="mrp" className="text-sm font-medium text-foreground">
+                MRP (optional)
+              </Label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span className="text-text-muted-2 sm:text-sm">₹</span>
+                </div>
+                <Input
+                  id="mrp"
+                  type="number"
+                  name="mrp"
+                  value={product.mrp}
+                  onChange={changeHandler}
+                  className="pl-7 shadow-sm"
+                  disabled={isLoading}
+                  placeholder="Shown struck-through if higher than price"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-3">
+              <Label htmlFor="brand" className="text-sm font-medium text-foreground">
+                Brand (optional)
+              </Label>
+              <Input
+                id="brand"
+                type="text"
+                name="brand"
+                value={product.brand}
+                onChange={changeHandler}
+                className="shadow-sm"
+                disabled={isLoading}
+                placeholder="e.g. Sony"
+              />
+            </div>
+
+            <div className="space-y-3">
               <Label htmlFor="category" className="text-sm font-medium text-foreground">
                 Category <span className="text-danger">*</span>
               </Label>
@@ -293,6 +342,31 @@ const AddProducts = ({ onClose, onProductAdded }) => {
                 ))}
               </select>
             </div>
+          </div>
+
+          <div className="flex items-center gap-6">
+            <label className="flex items-center gap-2 text-sm text-foreground">
+              <input
+                type="checkbox"
+                name="isTrending"
+                checked={product.isTrending}
+                onChange={changeHandler}
+                disabled={isLoading}
+                className="size-4 accent-primary"
+              />
+              Trending
+            </label>
+            <label className="flex items-center gap-2 text-sm text-foreground">
+              <input
+                type="checkbox"
+                name="isNewArrival"
+                checked={product.isNewArrival}
+                onChange={changeHandler}
+                disabled={isLoading}
+                className="size-4 accent-primary"
+              />
+              New Arrival
+            </label>
           </div>
 
           <div className="space-y-3">

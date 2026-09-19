@@ -1,6 +1,6 @@
 import { useContext, useState, useMemo } from "react";
 import api from "@/lib/api";
-import { MdOutlineClose, MdSearch } from "react-icons/md";
+import { MdOutlineClose, MdSearch, MdEdit } from "react-icons/md";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -26,6 +26,7 @@ import { AppContext } from "@/Context/AppContext";
 import Heading from "../components/Heading";
 import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet";
 import AddCategory from "../components/AddCategory";
+import EditCategory from "../components/EditCategory";
 import toast from "react-hot-toast";
 
 const Category = () => {
@@ -35,6 +36,7 @@ const Category = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState(null);
+  const [categoryToEdit, setCategoryToEdit] = useState(null);
 
   const filteredCategories = useMemo(() => {
     if (!searchTerm) return categories;
@@ -104,7 +106,7 @@ const Category = () => {
               <TableHead className="w-16 text-center">#</TableHead>
               <TableHead className="w-20">Image</TableHead>
               <TableHead>Category</TableHead>
-              <TableHead className="w-20 text-center">Actions</TableHead>
+              <TableHead className="w-28 text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -179,6 +181,15 @@ const Category = () => {
                     </div>
                   </TableCell>
                   <TableCell className="text-center">
+                    <div className="flex items-center justify-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setCategoryToEdit(category)}
+                      className="h-8 w-8 p-0 text-text-secondary hover:text-primary hover:bg-accent"
+                    >
+                      <MdEdit className="h-4 w-4" />
+                    </Button>
                     <AlertDialog
                       open={
                         deleteDialogOpen &&
@@ -228,6 +239,7 @@ const Category = () => {
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -242,6 +254,18 @@ const Category = () => {
           categories
         </div>
       )}
+
+      <Sheet open={categoryToEdit !== null} onOpenChange={(o) => !o && setCategoryToEdit(null)}>
+        <SheetContent side="right" className="w-full sm:w-96">
+          {categoryToEdit && (
+            <EditCategory
+              category={categoryToEdit}
+              onClose={() => setCategoryToEdit(null)}
+              onCategoryUpdated={() => getCategories()}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };

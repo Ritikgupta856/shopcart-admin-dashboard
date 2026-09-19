@@ -7,8 +7,6 @@ import { Input } from "@/components/ui/input";
 
 const emptyBanner = {
   title: "",
-  subtitle: "",
-  ctaText: "Shop Now",
   ctaUrl: "/",
   desktopImage: null,
   mobileImage: null,
@@ -48,6 +46,7 @@ const AddBanner = ({ onClose, onBannerAdded }) => {
   const uploadImage = async (file) => {
     const formData = new FormData();
     formData.append("image", file);
+    formData.append("folder", "banners");
     const response = await api.post("/api/upload/image", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
@@ -65,8 +64,6 @@ const AddBanner = ({ onClose, onBannerAdded }) => {
 
       const response = await api.post("/api/banners", {
         title: banner.title.trim(),
-        subtitle: banner.subtitle.trim(),
-        ctaText: banner.ctaText.trim() || "Shop Now",
         ctaUrl: banner.ctaUrl.trim() || "/",
         desktopImage: desktopImageUrl,
         mobileImage: mobileImageUrl,
@@ -116,45 +113,17 @@ const AddBanner = ({ onClose, onBannerAdded }) => {
           </div>
 
           <div className="space-y-3">
-            <Label htmlFor="subtitle" className="text-sm font-medium text-foreground">
-              Subtitle
+            <Label htmlFor="ctaUrl" className="text-sm font-medium text-foreground">
+              CTA URL (where clicking the banner leads)
             </Label>
             <Input
-              id="subtitle"
-              name="subtitle"
-              value={banner.subtitle}
+              id="ctaUrl"
+              name="ctaUrl"
+              value={banner.ctaUrl}
               onChange={changeHandler}
               disabled={isLoading}
-              placeholder="Discover the latest in electronics"
+              placeholder="/category/electronics"
             />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-3">
-              <Label htmlFor="ctaText" className="text-sm font-medium text-foreground">
-                CTA Text
-              </Label>
-              <Input
-                id="ctaText"
-                name="ctaText"
-                value={banner.ctaText}
-                onChange={changeHandler}
-                disabled={isLoading}
-              />
-            </div>
-            <div className="space-y-3">
-              <Label htmlFor="ctaUrl" className="text-sm font-medium text-foreground">
-                CTA URL
-              </Label>
-              <Input
-                id="ctaUrl"
-                name="ctaUrl"
-                value={banner.ctaUrl}
-                onChange={changeHandler}
-                disabled={isLoading}
-                placeholder="/category/electronics"
-              />
-            </div>
           </div>
 
           <div className="space-y-3">

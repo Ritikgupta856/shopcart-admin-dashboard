@@ -11,6 +11,8 @@ const AppProvider = ({ children }) => {
   const [totalRevenue, setTotalRevenue] = useState("0");
   const [banners, setBanners] = useState([]);
   const [deals, setDeals] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [coupons, setCoupons] = useState([]);
 
   // ✅ Fetch categories
   const getCategories = async () => {
@@ -73,6 +75,26 @@ const AppProvider = ({ children }) => {
     }
   };
 
+  // ✅ Fetch reviews
+  const getReviews = async () => {
+    try {
+      const response = await api.get("/api/reviews");
+      setReviews(response.data.reviews);
+    } catch (error) {
+      console.error("Error fetching reviews:", error);
+    }
+  };
+
+  // ✅ Fetch coupons
+  const getCoupons = async () => {
+    try {
+      const response = await api.get("/api/coupons");
+      setCoupons(response.data.coupons);
+    } catch (error) {
+      console.error("Error fetching coupons:", error);
+    }
+  };
+
   // Run once on mount
   useEffect(() => {
     const token = localStorage.getItem("admin_token");
@@ -83,6 +105,8 @@ const AppProvider = ({ children }) => {
     getUsers();
     getBanners();
     getDeals();
+    getReviews();
+    getCoupons();
   }, []);
 
   return (
@@ -95,12 +119,16 @@ const AppProvider = ({ children }) => {
         totalRevenue,
         banners,
         deals,
+        reviews,
+        coupons,
         getCategories,
         getProducts,
         getOrdersDetails,
         getUsers,
         getBanners,
         getDeals,
+        getReviews,
+        getCoupons,
       }}
     >
       {children}
