@@ -1,4 +1,4 @@
-import { useContext, useState, useMemo } from "react";
+import { useContext, useState, useMemo, useEffect } from "react";
 import api from "@/lib/api";
 import { MdOutlineClose, MdSearch } from "react-icons/md";
 import { Button } from "@/components/ui/button";
@@ -29,19 +29,47 @@ import { Input } from "@/components/ui/input";
 import { StockBadge } from "@/components/StatusBadge";
 
 
+const PAGE_SIZE = 10;
+
 const Products = () => {
-  const { products,getProducts } = useContext(AppContext);
+  const { products, getProducts, categories } = useContext(AppContext);
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [stockFilter, setStockFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
 
+  const getStock = (product) =>
+    product.hasVariants ? product.totalStock : product.stock ?? product.totalStock ?? 0;
+
   const filteredProducts = useMemo(() => {
-    if (!searchTerm) return products;
-    return products.filter((product) =>
-      product.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [products, searchTerm]);
+    return products.filter((product) => {
+      const matchesSearch = !searchTerm || product.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = categoryFilter === "all" || product.category?._id === categoryFilter;
+      const stock = getStock(product);
+      const matchesStock =
+        stockFilter === "all" ||
+        (stockFilter === "in-stock" && stock > 0) ||
+        (stockFilter === "out-of-stock" && stock <= 0);
+      return matchesSearch && matchesCategory && matchesStock;
+    });
+  }, [products, searchTerm, categoryFilter, stockFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / PAGE_SIZE));
+  const paginatedProducts = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filteredProducts.slice(start, start + PAGE_SIZE);
+  }, [filteredProducts, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, categoryFilter, stockFilter]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [totalPages, currentPage]);
 
   const removeProduct = async () => {
     if (!productToDelete) return;
@@ -57,9 +85,6 @@ const Products = () => {
       setIsLoading(false);
     }
   };
-
-  const getStock = (product) =>
-    product.hasVariants ? product.totalStock : product.stock ?? product.totalStock ?? 0;
 
   return (
     <div className="w-full min-h-screen p-4 sm:p-6 md:p-8 space-y-6 bg-background">
@@ -80,14 +105,49 @@ const Products = () => {
           </Sheet>
         }
       />
-      <div className="relative">
-        <MdSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-muted-2 h-4 w-4" />
-        <Input
-          placeholder="Search products..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10 max-w-sm"
-        />
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <MdSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-muted-2 h-4 w-4" />
+          <Input
+            placeholder="Search products..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <select
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value)}
+          className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+        >
+          <option value="all">All Categories</option>
+          {categories.map((cat) => (
+            <option key={cat._id} value={cat._id}>
+              {cat.name}
+            </option>
+          ))}
+        </select>
+        <select
+          value={stockFilter}
+          onChange={(e) => setStockFilter(e.target.value)}
+          className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+        >
+          <option value="all">All Stock</option>
+          <option value="in-stock">In Stock</option>
+          <option value="out-of-stock">Out of Stock</option>
+        </select>
+        {(searchTerm || categoryFilter !== "all" || stockFilter !== "all") && (
+          <Button
+            variant="outline"
+            onClick={() => {
+              setSearchTerm("");
+              setCategoryFilter("all");
+              setStockFilter("all");
+            }}
+          >
+            Clear Filters
+          </Button>
+        )}
       </div>
       <div className="rounded-xl border border-border overflow-hidden bg-card shadow-soft">
         <Table>
@@ -106,17 +166,21 @@ const Products = () => {
             {filteredProducts.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-10">
-                  {searchTerm ? (
+                  {searchTerm || categoryFilter !== "all" || stockFilter !== "all" ? (
                     <div className="space-y-2">
                       <p className="text-text-secondary text-sm">
-                        No products found matching "{searchTerm}"
+                        No products found matching your filters
                       </p>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setSearchTerm("")}
+                        onClick={() => {
+                          setSearchTerm("");
+                          setCategoryFilter("all");
+                          setStockFilter("all");
+                        }}
                       >
-                        Clear search
+                        Clear filters
                       </Button>
                     </div>
                   ) : (
@@ -130,9 +194,11 @@ const Products = () => {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredProducts.map((product, index) => (
+              paginatedProducts.map((product, index) => (
                 <TableRow key={product._id} className="hover:bg-secondary/60">
-                  <TableCell className="text-center text-text-secondary text-sm">{index + 1}</TableCell>
+                  <TableCell className="text-center text-text-secondary text-sm">
+                    {(currentPage - 1) * PAGE_SIZE + index + 1}
+                  </TableCell>
                   <TableCell>
                     <div className="w-12 h-12 rounded-lg overflow-hidden bg-secondary flex items-center justify-center">
                       {product.image ? (
@@ -182,9 +248,34 @@ const Products = () => {
           </TableBody>
         </Table>
       </div>
-      {searchTerm && filteredProducts.length > 0 && (
-        <div className="text-sm text-text-muted-2">
-          Showing {filteredProducts.length} of {products.length} products
+      {filteredProducts.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="text-sm text-text-muted-2">
+            Showing {(currentPage - 1) * PAGE_SIZE + 1}
+            {"–"}
+            {Math.min(currentPage * PAGE_SIZE, filteredProducts.length)} of {filteredProducts.length} products
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            <span className="text-sm text-text-secondary">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </Button>
+          </div>
         </div>
       )}
       {/* Delete Dialog */}
